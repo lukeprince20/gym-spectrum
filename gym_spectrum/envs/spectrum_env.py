@@ -9,27 +9,19 @@ from channel_env import ChannelEnv
 
 class SpectrumEnv(gym.Env):
     metadata = {'render.modes': ['human']}
+    spec = None
 
     def __init__(self, channels=2, alphas=[0.5, 0.5], betas=[0.5, 0.5], epochs=50):
         self.numChannels = channels
+        self.maxEpochs = epochs
 
         # construct multiple channel environments
-        self.channels = tuple(
-            ChannelEnv(a,b) for a,b in zip(alphas,betas))
+        # along with composite multi-channel action, state, and observation spaces
+        self.channels = tuple(ChannelEnv(a,b) for a,b in zip(alphas,betas))
+        self.action_space = spaces.Tuple([self.channels[x].action_space for x in range(channels)])
+        self.state_space = spaces.Tuple([self.channels[x].state_space for x in range(channels)])
+        self.observation_space = spaces.Tuple([self.channels[x].observation_space for x in range(channels)])
 
-        # construct composite multi-channel action space
-        self.action_space = spaces.Tuple(
-            [self.channels[x].action_space for x in range(channels)])
-
-        # construct composite multi-channel state space
-        self.state_space = spaces.Tuple(
-            [self.channels[x].state_space for x in range(channels)])
-
-        # construct composite multi-channel observation space
-        self.observation_space = spaces.Tuple(
-            [self.channels[x].observation_space for x in range(channels)])
-
-        self.maxEpochs = epochs
         self.seed()
         self.reset()
 

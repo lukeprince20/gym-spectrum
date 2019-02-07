@@ -2,5 +2,6 @@ from setuptools import setup
 
 setup(name='gym_spectrum',
       version='0.0.1',
-      install_requires=['gym']  # And any other dependencies foo needs
+      keywords='openai, gym, environment, rf, spectrum, channel, rl',
+      install_requires=['numpy', 'gym'] 
 )  
