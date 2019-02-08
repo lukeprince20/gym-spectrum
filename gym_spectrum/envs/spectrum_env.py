@@ -5,7 +5,7 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 
-from channel_env import ChannelEnv
+from gym_spectrum.envs.channel_env import ChannelEnv
 
 class SpectrumEnv(gym.Env):
     metadata = {'render.modes': ['human', 'string']}

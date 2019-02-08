@@ -25,7 +25,7 @@ class DiscreteMarkov(spaces.Discrete):
         return "DiscreteMarkov(%d)" % self.n
 
 
-class ChannelEnv(DiscreteMarkov):
+class ChannelEnv(gym.Env):
     metadata = {'render.modes': ['human', 'string']}
     reward_range = (-5, 1)
     spec = None
