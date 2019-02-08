@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import gym
-from gym import error, spaces, utils
+from gym import spaces
 from gym.utils import seeding
 
 import math
 import numpy as np
 
-class DiscreteMarkov(gym.spaces.Discrete):
+class DiscreteMarkov(spaces.Discrete):
     """
     {0,1,...,n-1} with support for non-uniform sampling.
     Example usage:
@@ -17,9 +17,7 @@ class DiscreteMarkov(gym.spaces.Discrete):
     """
     def sample(self, *args, **kwargs):
         if args or kwargs:
-            print("args: ", args)
-            print("kwargs: ", kwargs)
-            return gym.spaces.np_random.choice(self.n, *args, **kwargs)
+            return spaces.np_random.choice(self.n, *args, **kwargs)
         else:
             return super().sample()
 
@@ -45,12 +43,8 @@ class ChannelEnv(DiscreteMarkov):
     def step(self, action=None):
         action = action if action is not None else self.action_space.sample()
         self.epoch = self.epoch + 1
-
         self.update_state()
-        if action is not self.state:
-            reward = self.reward_range[0]
-        else:
-            reward = self.reward_range[1]
+        reward = self.reward_range[0] if action is not self.state else self.reward_range[1]
         done = True if (self.epoch == self.maxEpochs) else False
         return self.get_observation(), reward, done, {}
 
@@ -63,16 +57,15 @@ class ChannelEnv(DiscreteMarkov):
         self.state = self.state_space.sample(p=pdf)
 
     def get_observation(self):
-        return (self.state, self.epoch)
+        return self.state
 
     def reset(self):
         self.epoch = 0
         self.state = self.state_space.sample()
-        return self.get_observation()
+        return self.epoch, self.state
 
     def render(self, mode='human'):
-        renderStr = ("Epoch: " + str(self.epoch),
-            "; Channel State: " + str(self.state))
+        renderStr = "Epoch: " + str(self.epoch) + "; Channel State: " + str(self.state)
         if mode is 'human':
             print(renderStr)
         elif mode is 'string':
@@ -85,5 +78,6 @@ if __name__ == "__main__":
     env = ChannelEnv(epochs=50)
     done = False
     while not done:
-        (o, r, done, _) = env.step()
-        print(env.render(mode="string"), "; Observation: ", o, "; Reward: ", r)
+        a = env.action_space.sample()
+        (o, r, done, _) = env.step(a)
+        print("Action Taken: ", a, "; ", env.render(mode="string"), "; Observation: ", o, "; Reward: ", r)
