@@ -4,7 +4,6 @@
 import gym
 from gym import spaces
 from gym.utils import seeding
-
 import math
 import numpy as np
 
@@ -35,7 +34,7 @@ class ChannelEnv(gym.Env):
 
     def __init__(self, alpha=0.5, beta=0.5, epochs=math.inf):
         self.observation_space = spaces.Discrete(2)
-        self.channel_matrix = np.array([[1-alpha, alpha], [beta, 1-beta]])
+        self.transition_matrix = np.array([[1-alpha, alpha], [beta, 1-beta]])
         self.maxEpochs = epochs
         self.seed()
         self.reset()
@@ -61,7 +60,7 @@ class ChannelEnv(gym.Env):
         return seed
 
     def update_state(self):
-        pdf = self.channel_matrix[self.state, :]
+        pdf = self.transition_matrix[self.state, :]
         self.state = self.state_space.sample(p=pdf)
 
     def get_observation(self):
@@ -84,6 +83,7 @@ class ChannelEnv(gym.Env):
 
 if __name__ == "__main__":
     env = ChannelEnv(alpha=0.1, beta=0.2, epochs=50)
+    print("transition matrix:\n{}".format(env.transition_matrix))
     done = False
     while not done:
         a = env.action_space.sample()

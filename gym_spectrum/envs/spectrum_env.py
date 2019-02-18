@@ -4,8 +4,8 @@
 import gym
 from gym import spaces
 from gym.utils import seeding
-
 from gym_spectrum.envs.channel_env import ChannelEnv
+import numpy as np
 
 class SpectrumEnv(gym.Env):
     metadata = {'render.modes': ('human', 'string'), 'action.modes': ('sense', 'predict', 'access')}
@@ -22,6 +22,11 @@ class SpectrumEnv(gym.Env):
         self.state_space = spaces.Tuple([x.state_space for x in self.channels])
         self.observation_space = spaces.Tuple([x.observation_space for x in self.channels])
 
+        # maintain transition probabilities in as numpy.array and dict for convenience
+        self.transition_dict = {i:m for i,m in enumerate(c.transition_matrix for c in self.channels)}
+        self.transition_matrix = np.array(1)
+        for c in self.channels:
+            self.transition_matrix = np.kron(self.transition_matrix, c.transition_matrix)
         self.seed()
         self.reset()
 
@@ -61,6 +66,10 @@ class SpectrumEnv(gym.Env):
 
 if __name__ == "__main__":
     env = SpectrumEnv(alphas=(0.1, 0.1), betas=(0.2, 0.2), epochs=50)
+    for i, c in enumerate(env.channels):
+        print("channel {} transition matrix:\n{}".format(i,c.transition_matrix))
+    print("transition dict:\n{}".format(env.transition_dict))
+    print("transition matrix:\n{}".format(env.transition_matrix))
     done = False
     while not done:
         a = env.action_space.sample()
