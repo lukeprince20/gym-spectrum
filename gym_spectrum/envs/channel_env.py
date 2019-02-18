@@ -26,7 +26,7 @@ class DiscreteMarkov(spaces.Discrete):
 
 
 class ChannelEnv(gym.Env):
-    metadata = {'render.modes': ['human', 'string']}
+    metadata = {'render.modes': ('human', 'string'), 'action.modes': ('sense', 'predict', 'access')}
     reward_range = (-5, 1)
     spec = None
 
@@ -40,11 +40,19 @@ class ChannelEnv(gym.Env):
         self.seed()
         self.reset()
 
-    def step(self, action=None):
-        action = action if action is not None else self.action_space.sample()
+    def step(self, action=None, mode='sense'):
+        if (action is None) and (mode is not 'sense'):
+            raise ValueError("action '{}' for mode '{}' is invalid", action, mode)
         self.epoch = self.epoch + 1
         self.update_state()
-        reward = self.reward_range[0] if action is not self.state else self.reward_range[1]
+        if mode is 'sense':
+            reward = None
+        elif mode in ('predict', 'access'):
+            if action not in self.action_space:
+                raise AssertionError("action '{}' is invalid.", action)
+            reward = self.reward_range[0] if action is not self.state else self.reward_range[1]
+        else:
+            raise ValueError("mode '{}' is invalid.", mode)
         done = True if (self.epoch == self.maxEpochs) else False
         return self.get_observation(), reward, done, {}
 
@@ -75,9 +83,9 @@ class ChannelEnv(gym.Env):
 
 
 if __name__ == "__main__":
-    env = ChannelEnv(epochs=50)
+    env = ChannelEnv(alpha=0.1, beta=0.2, epochs=50)
     done = False
     while not done:
         a = env.action_space.sample()
-        (o, r, done, _) = env.step(a)
+        (o, r, done, _) = env.step(a, 'predict')
         print("Action Taken: ", a, "; ", env.render(mode="string"), "; Observation: ", o, "; Reward: ", r)

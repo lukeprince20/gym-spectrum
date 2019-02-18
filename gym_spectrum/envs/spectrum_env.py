@@ -8,15 +8,15 @@ from gym.utils import seeding
 from gym_spectrum.envs.channel_env import ChannelEnv
 
 class SpectrumEnv(gym.Env):
-    metadata = {'render.modes': ['human', 'string']}
+    metadata = {'render.modes': ('human', 'string'), 'action.modes': ('sense', 'predict', 'access')}
     spec = None
 
-    def __init__(self, channels=2, alphas=[0.5, 0.5], betas=[0.5, 0.5], epochs=50):
-        self.numChannels = channels
+    def __init__(self, alphas=(0.5, 0.5), betas=(0.5, 0.5), epochs=50):
         self.maxEpochs = epochs
 
-        # construct multiple channel environments
+        # construct multiple channel environments depending on length of alphas/betas
         # along with composite multi-channel action, state, and observation spaces
+        assert len(alphas) == len(betas), "alphas and betas must be equal length"
         self.channels = tuple(ChannelEnv(a,b) for a,b in zip(alphas,betas))
         self.action_space = spaces.Tuple([x.action_space for x in self.channels])
         self.state_space = spaces.Tuple([x.state_space for x in self.channels])
@@ -25,12 +25,17 @@ class SpectrumEnv(gym.Env):
         self.seed()
         self.reset()
 
-    def step(self, action=None):
-        action = action if action is not None else self.action_space.sample()
+    def step(self, action=None, mode='sense'):
+        def isIterableCollection(x): return hasattr(x, "__iter__") and not isinstance(x, str)
+        actions = action if isIterableCollection(action) else tuple(action for _ in self.channels)
+        assert len(actions)==len(self.channels)
+        modes = mode if isIterableCollection(mode) else tuple(mode for _ in self.channels)
+        assert len(modes)==len(self.channels)
         self.epoch = self.epoch + 1
 
         # dispatch actions and retrieve channel observations/rewards
-        observations, rewards, _, _ = zip(*tuple(map(lambda x,y:x.step(y), self.channels, action)))
+        observations, rewards, _, _ = zip(*tuple(map(
+            lambda c,a,m:c.step(action=a,mode=m), self.channels, actions, modes)))
 
         done = True if (self.epoch == self.maxEpochs) else False
         return observations, rewards, done, {}
@@ -55,9 +60,9 @@ class SpectrumEnv(gym.Env):
             raise ValueError("mode '{}' is invalid.", mode)
 
 if __name__ == "__main__":
-    env = SpectrumEnv(epochs=50)
+    env = SpectrumEnv(alphas=(0.1, 0.1), betas=(0.2, 0.2), epochs=50)
     done = False
     while not done:
         a = env.action_space.sample()
-        (o, r, done, _) = env.step(a)
+        (o, r, done, _) = env.step(a, 'predict')
         print("Action Taken: ", a, "; ", env.render(mode="string"), "; Observation: ", o, "; Reward: ", r)
