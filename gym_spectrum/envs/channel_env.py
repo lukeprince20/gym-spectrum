@@ -25,8 +25,8 @@ class DiscreteMarkov(spaces.Discrete):
 
 
 class ChannelEnv(gym.Env):
-    metadata = {'render.modes': ('human', 'string'), 'action.modes': ('sense', 'predict', 'access')}
-    reward_range = (-5, 1)
+    metadata = {'render.modes': ('human', 'string'), 'action.modes': ('no-op', 'sense', 'predict', 'access')}
+    reward_range = (-1, 1)
     spec = None
 
     action_space = spaces.Discrete(2)
@@ -40,20 +40,16 @@ class ChannelEnv(gym.Env):
         self.reset()
 
     def step(self, action=None, mode='sense'):
-        if (action is None) and (mode is not 'sense'):
-            raise ValueError("action '{}' for mode '{}' is invalid", action, mode)
+        if (action is None) and (mode not in ('no-op', 'sense')):
+            raise ValueError("action '{}' for mode '{}' is invalid".format(action, mode))
+        if (action is not None) and (action not in self.action_space):
+            raise AssertionError("action '{}' is invalid.".format(action))
         self.epoch = self.epoch + 1
         self.update_state()
-        if mode is 'sense':
-            reward = None
-        elif mode in ('predict', 'access'):
-            if action not in self.action_space:
-                raise AssertionError("action '{}' is invalid.", action)
-            reward = self.reward_range[0] if action is not self.state else self.reward_range[1]
-        else:
-            raise ValueError("mode '{}' is invalid.", mode)
+        observation = self.get_observation(mode)
+        reward = self.get_reward(action, mode)
         done = True if (self.epoch == self.maxEpochs) else False
-        return self.get_observation(), reward, done, {}
+        return observation, reward, done, {}
 
     def seed(self):
         self.np_random, seed = seeding.np_random()
@@ -63,8 +59,25 @@ class ChannelEnv(gym.Env):
         pdf = self.transition_matrix[self.state, :]
         self.state = self.state_space.sample(p=pdf)
 
-    def get_observation(self):
-        return self.state
+    def get_reward(self, action, mode='sense'):
+        if mode in ('no-op', 'sense'):
+            reward = None
+        elif mode == 'predict':
+            reward = self.reward_range[0] if (action != self.state) else self.reward_range[1]
+        elif mode == 'access':
+            reward = self.reward_range[0] if (action == self.state) else self.reward_range[1]
+        else:
+            raise ValueError("mode '{}' is invalid.".format(mode))
+        return reward
+
+    def get_observation(self, mode='sense'):
+        if mode == 'no-op':
+            observation = None
+        elif mode in ('sense', 'predict', 'access'):
+            observation = self.state
+        else:
+            raise ValueError("mode '{}' is invalid.".format(mode))
+        return observation
 
     def reset(self):
         self.epoch = 0
@@ -73,12 +86,12 @@ class ChannelEnv(gym.Env):
 
     def render(self, mode='human'):
         renderStr = "Epoch: " + str(self.epoch) + "; Channel State: " + str(self.state)
-        if mode is 'human':
+        if mode == 'human':
             print(renderStr)
-        elif mode is 'string':
+        elif mode == 'string':
             return renderStr
         else:
-            raise ValueError("mode '{}' is invalid.", mode)
+            raise ValueError("mode '{}' is invalid.".format(mode))
 
 
 if __name__ == "__main__":

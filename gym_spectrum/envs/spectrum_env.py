@@ -57,9 +57,9 @@ class SpectrumEnv(gym.Env):
     def render(self, mode='human'):
         self.state = tuple(map(lambda x:x.state, self.channels))
         renderStr = "Epoch: " + str(self.epoch) + "; Channel State: " + str(self.state)
-        if mode is 'human':
+        if mode == 'human':
             print(renderStr)
-        elif mode is 'string':
+        elif mode == 'string':
             return renderStr
         else:
             raise ValueError("mode '{}' is invalid.", mode)
