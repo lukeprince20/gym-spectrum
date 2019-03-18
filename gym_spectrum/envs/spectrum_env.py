@@ -8,7 +8,7 @@ from gym_spectrum.envs.channel_env import ChannelEnv
 import numpy as np
 
 class SpectrumEnv(gym.Env):
-    metadata = {'render.modes': ('human', 'string'), 'action.modes': ('sense', 'predict', 'access')}
+    metadata = {'render.modes': ('human', 'string'), 'action.modes': ('access',)}
     spec = None
 
     def __init__(self, alphas=(0.5, 0.5), betas=(0.5, 0.5), epochs=50):
@@ -30,7 +30,7 @@ class SpectrumEnv(gym.Env):
         self.seed()
         self.reset()
 
-    def step(self, action=None, mode='sense'):
+    def step(self, action=None, mode='access'):
         def isIterableCollection(x): return hasattr(x, "__iter__") and not isinstance(x, str)
         actions = action if isIterableCollection(action) else tuple(action for _ in self.channels)
         assert len(actions)==len(self.channels)
@@ -73,5 +73,5 @@ if __name__ == "__main__":
     done = False
     while not done:
         a = env.action_space.sample()
-        (o, r, done, _) = env.step(a, 'predict')
+        (o, r, done, _) = env.step(a, 'access')
         print("Action Taken: ", a, "; ", env.render(mode="string"), "; Observation: ", o, "; Reward: ", r)
