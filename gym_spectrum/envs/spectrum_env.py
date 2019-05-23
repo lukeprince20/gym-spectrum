@@ -11,13 +11,14 @@ class SpectrumEnv(gym.Env):
     metadata = {'render.modes': ('human', 'string'), 'action.modes': ('access',)}
     spec = None
 
-    def __init__(self, alphas=(0.5, 0.5), betas=(0.5, 0.5), epochs=50):
+    def __init__(self, alphas=(0.5, 0.5), betas=(0.5, 0.5), epochs=50, seed=None):
+        self.seed(seed)
         self.maxEpochs = epochs
 
         # construct multiple channel environments depending on length of alphas/betas
         # along with composite multi-channel action, state, and observation spaces
         assert len(alphas) == len(betas), "alphas and betas must be equal length"
-        self.channels = tuple(ChannelEnv(a,b) for a,b in zip(alphas,betas))
+        self.channels = tuple(ChannelEnv(a,b,epochs,self.np_random.randint(0, 2*32)) for a,b in zip(alphas,betas))
         self.action_space = spaces.Tuple([x.action_space for x in self.channels])
         self.state_space = spaces.Tuple([x.state_space for x in self.channels])
         self.observation_space = spaces.Tuple([x.observation_space for x in self.channels])
@@ -27,7 +28,6 @@ class SpectrumEnv(gym.Env):
         self.transition_matrix = np.array(1)
         for c in self.channels:
             self.transition_matrix = np.kron(self.transition_matrix, c.transition_matrix)
-        self.seed()
         self.reset()
 
     def step(self, action=None, mode='access'):
@@ -45,8 +45,8 @@ class SpectrumEnv(gym.Env):
         done = True if (self.epoch == self.maxEpochs) else False
         return observations, rewards, done, {}
 
-    def seed(self):
-        self.np_random, seed = seeding.np_random()
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
         return seed
 
     def reset(self):

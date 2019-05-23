@@ -14,11 +14,21 @@ class DiscreteMarkov(spaces.Discrete):
     self.observation_space = spaces.Discrete(2)
     self.sample(p=[0.3, 0.7])
     """
+    def __init__(self, n, seed=None):
+        super().__init__(n)
+        self.seed(seed)
+
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return seed
+
     def sample(self, *args, **kwargs):
         if args or kwargs:
-            return spaces.np_random.choice(self.n, *args, **kwargs)
+            #return spaces.np_random.choice(self.n, *args, **kwargs)
+            return self.np_random.choice(self.n, *args, **kwargs)
         else:
-            return super().sample()
+            #return super().sample()
+            return self.np_random.randint(self.n)
 
     def __repr__(self):
         return "DiscreteMarkov(%d)" % self.n
@@ -29,14 +39,18 @@ class ChannelEnv(gym.Env):
     reward_range = (-0.5, 1)
     spec = None
 
-    action_space = spaces.Discrete(2)
-    state_space = DiscreteMarkov(2)
+    #action_space = spaces.Discrete(2)
+    #state_space = DiscreteMarkov(2)
 
-    def __init__(self, alpha=0.5, beta=0.5, epochs=math.inf):
-        self.observation_space = spaces.Discrete(2)
+    def __init__(self, alpha=0.5, beta=0.5, epochs=50, seed=None):
+        self.seed(seed)
+        #self.action_space = spaces.Discrete(2)
+        self.action_space = DiscreteMarkov(2, seed=self.np_random.randint(0, 2**32))
+        self.state_space = DiscreteMarkov(2, seed=self.np_random.randint(0, 2**32))
+        #self.observation_space = spaces.Discrete(2)
+        self.observation_space = DiscreteMarkov(2, seed=self.np_random.randint(0, 2**32))
         self.transition_matrix = np.array([[1-alpha, alpha], [beta, 1-beta]])
         self.maxEpochs = epochs
-        self.seed()
         self.reset()
 
     def step(self, action=None, mode='access'):
@@ -47,8 +61,8 @@ class ChannelEnv(gym.Env):
         done = True if (self.epoch == self.maxEpochs) else False
         return observation, reward, done, {}
 
-    def seed(self):
-        self.np_random, seed = seeding.np_random()
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
         return seed
 
     def update_state(self):
